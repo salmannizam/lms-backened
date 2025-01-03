@@ -1,0 +1,96 @@
+[
+  {
+    "id": "test1",
+    "name": "RGM Tool Knowledge Test",
+    "status": "active",
+    "totalTime": 300000,
+    "questions": [
+      {
+        "id": 1,
+        "questionText": "What does each RGM tool do?",
+        "questionType": "ordering",
+        "options": [
+          { "id": "PvP", "text": "PvP" },
+          { "id": "AO", "text": "AO" },
+          { "id": "CoPilot", "text": "Co Pilot" },
+          { "id": "TPO", "text": "TPO" }
+        ],
+        "functions": [
+          { "id": "PvP", "text": "Portfolio Simulator To Plan Price Impacts" },
+          { "id": "TPO", "text": "FINDS Patterns And Drivers Of Promo Efficiency To Refine Forward-Looking Promo Plans" },
+          { "id": "CoPilot", "text": "Automated & Optimized Pricing Scenarios Based On ML/AI Model That Dynamically Optimizes Sales Forecast" },
+          { "id": "AO", "text": "Optimizer For The Ideal Assortment By Channel And Customer" }
+        ],
+        "correctAnswers": [
+          { "toolId": "PvP", "functionId": "PvP" },
+          { "toolId": "TPO", "functionId": "TPO" },
+          { "toolId": "CoPilot", "functionId": "CoPilot" },
+          { "toolId": "AO", "functionId": "AO" }
+        ],
+        "timeLimit": 30000
+      },
+      {
+        "id": 2,
+        "questionText": "FILL THE BLANKS FOR STRATEGIC APPLICATION.",
+        "questionType": "input",
+        "blanks": [
+          {
+            "question": "Through ________ we can build a segmented OBPPC architecture.",
+            "correctAnswer": "Portfolio Simulator"
+          },
+          {
+            "question": "The ________ tool reviews the optimal trade funding.",
+            "correctAnswer": "AO Co Pilot"
+          }
+        ],
+        "timeLimit": 45000
+      },
+      {
+        "id": 3,
+        "questionText": "Which tool helps optimize assortment planning?",
+        "questionType": "select",
+        "options": [
+          { "id": "PortfolioSimulator", "text": "Portfolio Simulator" },
+          { "id": "AOCoPilot", "text": "AO Co Pilot" },
+          { "id": "Optimizer", "text": "Optimizer For The Ideal Assortment" },
+          { "id": "TPO", "text": "TPO" }
+        ],
+        "correctAnswer": "Optimizer For The Ideal Assortment",
+        "timeLimit": 20000
+      }
+    ]
+  },
+  {
+    "id": "test2",
+    "name": "RGM Advanced Test",
+    "status": "active",
+    "totalTime": 600000,
+    "questions": [
+      {
+        "id": 1,
+        "questionText": "What does AO Co Pilot do?",
+        "questionType": "input",
+        "blanks": [
+          {
+            "question": "Through ________ we can optimize pricing scenarios.",
+            "correctAnswer": "AO Co Pilot"
+          }
+        ],
+        "timeLimit": 30000
+      },
+      {
+        "id": 2,
+        "questionText": "Choose the tool that helps with pricing optimization.",
+        "questionType": "select",
+        "options": [
+          { "id": "PortfolioSimulator", "text": "Portfolio Simulator" },
+          { "id": "AOCoPilot", "text": "AO Co Pilot" },
+          { "id": "Optimizer", "text": "Optimizer For The Ideal Assortment" },
+          { "id": "TPO", "text": "TPO" }
+        ],
+        "correctAnswer": "AO Co Pilot",
+        "timeLimit": 25000
+      }
+    ]
+  }
+]
