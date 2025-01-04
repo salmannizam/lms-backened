@@ -1,37 +1,33 @@
-// src/questions/questions.service.ts
 import { Injectable } from '@nestjs/common';
 import * as crypto from 'crypto';
 import * as questionsData from './questions.json';  // Import the JSON file
-import { writeFileSync } from 'fs';  // To save results to file (optional)
 
 @Injectable()
 export class QuestionsService {
   private tests = questionsData;  // Loaded directly from the JSON file
   private activeTests: any[] = []; // Store active test sessions
 
+  // Start the test with a generated token
   startTest(testId: string) {
-    // Find the test with the provided testId and ensure it's active
     const test = this.tests.find((test: any) => test.id === testId && test.status === 'active');
     if (!test) {
       return { valid: false, message: 'Test not found or not active.' };
     }
 
-    // Generate a unique token for the test session
     const token = crypto.randomBytes(16).toString('hex');
-    const startTime = Date.now(); // Capture the start time
-    const totalTime = test.totalTime; // Total time for the test
+    const startTime = Date.now();
+    const totalTime = test.totalTime;
 
-    // Add the session to the list of active tests (temporary in-memory storage for this session)
     this.activeTests.push({
       token,
       testId,
       startTime,
       totalTime,
-      results: [],
+      answers: [],  // Store user answers here
       status: 'in-progress',
     });
 
-    // Send back only essential test details (no answers)
+    // Return the token and test details (without answers)
     return {
       valid: true,
       token,
@@ -42,7 +38,7 @@ export class QuestionsService {
           id: q.id,
           questionText: q.questionText,
           questionType: q.questionType,
-          options: q.options, // Send options for multiple-choice or similar questions
+          options: q.options,
           timeLimit: q.timeLimit,
         })),
         totalTime,
@@ -50,87 +46,94 @@ export class QuestionsService {
     };
   }
 
-
-  // Store answer and check if it is correct
-  storeTestResult(token: string, questionId: number, userAnswer: any) {
+  // Get the test details and status by token
+  getTestByToken(token: string) {
+    // Find the active test session by the provided token
     const testSession = this.activeTests.find((session) => session.token === token);
+    
+    // If no session is found, return an error message
     if (!testSession) {
-      return { valid: false, message: 'Invalid test session.' };
+      return { valid: false, message: 'Invalid or expired test session.' };
     }
-
+  
+    // Find the corresponding test data by testId from the active session
     const test = this.tests.find((test: any) => test.id === testSession.testId);
     if (!test) {
       return { valid: false, message: 'Test not found.' };
     }
-
-    const question = test.questions.find((q: any) => q.id === questionId);
-    if (!question) {
-      return { valid: false, message: 'Invalid question.' };
-    }
-
-    // Check if time expired
-    const currentTime = Date.now();
-    const elapsedTime = Math.floor((currentTime - testSession.startTime) / 1000); // Time in seconds
-
-    if (elapsedTime > question.timeLimit) {
-      return { valid: false, message: 'Time limit for this question has expired.' };
-    }
-
-    // Validate the answer
-    const isCorrect = this.verifyAnswer(question, userAnswer);
-
-    // Store the result
-    testSession.results.push({
-      questionId,
-      isCorrect,
-      userAnswer,
+  
+    // Map the questions to include the user's answers (if any)
+    const questionsWithAnswers = test.questions.map((q: any) => {
+      const answer = testSession.answers.find((a: any) => a.questionId === q.id);
+      return {
+        id: q.id,
+        questionText: q.questionText,
+        questionType: q.questionType,
+        options: q.options,
+        timeLimit: q.timeLimit,
+        functions: q.functions,  
+        userAnswer: answer ? answer.userAnswer : null,  // Include the user's answer if available
+      };
     });
-
-    return { valid: true, isCorrect, message: isCorrect ? 'Correct answer.' : 'Incorrect answer.' };
+  
+    // Return the test details with answers if the test has been completed
+    return {
+      valid: true,
+      token: testSession.token,
+      test: {
+        id: test.id,
+        name: test.name,
+        questions: questionsWithAnswers,
+        totalTime: testSession.totalTime,
+        startTime: testSession.startTime,
+      },
+      status: testSession.status,  // Include the current status of the test (in-progress or completed)
+      results: testSession.status === 'completed' ? testSession.answers : null,  // Include results only if the test is completed
+    };
   }
+  
 
-
-  // Mark the test as completed
-  markTestCompleted(token: string) {
+  // Store the answers and mark test as completed once answers are submitted
+  submitTest(token: string, answers: any[]) {
     const testSession = this.activeTests.find((session) => session.token === token);
     if (!testSession) {
-      return { valid: false, message: 'Test session not found.' };
+      return { valid: false, message: 'Invalid test session.' };
     }
 
     if (testSession.status === 'completed') {
       return { valid: false, message: 'Test already completed.' };
     }
 
-    // Mark the test as completed
+    // Validate and store the answers
+    const test = this.tests.find((test: any) => test.id === testSession.testId);
+    if (!test) {
+      return { valid: false, message: 'Test not found.' };
+    }
+
+    answers.forEach(answer => {
+      const question = test.questions.find((q: any) => q.id === answer.questionId);
+      if (!question) {
+        return { valid: false, message: 'Invalid question.' };
+      }
+
+      // Store answer
+      testSession.answers.push({
+        questionId: answer.questionId,
+        userAnswer: answer.userAnswer,
+      });
+    });
+
+    // Mark test as completed
     testSession.status = 'completed';
 
-    // Optionally, save the test results to a file (you can store in a database later)
-    this.saveResultsToFile(testSession);
-
-    return { valid: true, message: 'Test completed successfully.', results: testSession.results };
+    return {
+      valid: true,
+      message: 'Test completed.',
+    };
   }
 
-  // Helper function to verify answers based on question type
-  private verifyAnswer(question: any, userAnswer: any): boolean {
-    switch (question.questionType) {
-      case 'ordering':
-        return JSON.stringify(question.correctOrder) === JSON.stringify(userAnswer.order);
-      case 'select':
-        return question.correctAnswer === userAnswer;
-      case 'input':
-        return question.correctAnswer === userAnswer;
-      default:
-        return false;
-    }
-  }
-
-  // Save results to a JSON file (optional)
-  private saveResultsToFile(testSession: any) {
-    // writeFileSync(`./test-results/test_${testSession.token}.json`, JSON.stringify(testSession.results, null, 2));
-  }
-
-  // Get all active tests (for debugging or listing all available tests)
-  getAllTests() {
+  // Get a list of active tests (just names and IDs)
+  getAllActiveTests() {
     return this.tests
       .filter((test: any) => test.status === 'active')
       .map((test: any) => ({
@@ -138,52 +141,4 @@ export class QuestionsService {
         name: test.name,
       }));
   }
-
-// Get test results by token
-getTestResultsByToken(token: string) {
-  const testSession = this.activeTests.find((session) => session.token === token);
-  if (!testSession) {
-    return { valid: false, message: 'Invalid or expired test session.' };
-  }
-
-  // Fetch test details based on the token
-  const test = this.tests.find((test: any) => test.id === testSession.testId);
-  if (!test) {
-    return { valid: false, message: 'Test not found.' };
-  }
-
-  return {
-    valid: true,
-    token: testSession.token,
-    test: {
-      id: test.id,
-      name: test.name,
-      questions: test.questions.map((q: any) => ({
-        id: q.id,
-        questionText: q.questionText,
-        questionType: q.questionType,
-        options: q.options,
-        functions: q.functions,  // Include the functions for the drag-and-drop question
-        timeLimit: q.timeLimit,
-      })),
-      totalTime: testSession.totalTime,
-      startTime: testSession.startTime,
-    },
-    results: testSession.results,
-  };
-}
-
-  // src/questions/questions.service.ts
-  getTestResults(token: string) {
-    const testSession = this.activeTests.find((session) => session.token === token);
-    if (!testSession) {
-      return { valid: false, message: 'Invalid test session.' };
-    }
-
-    return {
-      valid: true,
-      results: testSession.results,
-    };
-  }
-
 }
